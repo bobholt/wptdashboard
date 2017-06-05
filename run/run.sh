@@ -17,6 +17,7 @@ WPTRUNNER_PATH=/usr/local/bin/wptrunner
 
 # TODO(jeffcarp) this should be an argument
 WPTD_PATH="$(dirname $(readlink -f $0))/.."
+WPTD_PROD_HOST="https://wptdashboard.appspot.com"
 WPT_DIR="/tmp/wpt"
 WORKING_DIR=/tmp
 
@@ -107,7 +108,22 @@ main () {
     $GSUTIL_BINARY cp -z json -a public-read $RESULTS_FILENAME $GS_GZ_FILEPATH
 
     HTTP_RESULTS_URL="https://storage.googleapis.com/wptdashboard.appspot.com/results/$SHORT_SHA/$PLATFORM_ID.json.gz"
-    echo "Results available: $HTTP_RESULTS_URL"
+    echo "[WPTD] Results available: $HTTP_RESULTS_URL"
+
+
+    echo "[WPTD] Creating TestRun..."
+    curl \
+        -X POST  \
+        $WPTD_PROD_HOST/test-runs \
+        -d "{
+            \"browser_name\": \"$BROWSER_NAME\",
+            \"browser_version\": \"$BROWSER_VERSION\",
+            \"os_name\": \"$OS_NAME\",
+            \"os_version\": \"$OS_VERSION\",
+            \"revision\": \"$SHORT_SHA\",
+            \"results_url\": \"$HTTP_RESULTS_URL\"
+        }"
+
 }
 
 main "$@"
