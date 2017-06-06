@@ -18,8 +18,8 @@ WPTRUNNER_PATH=/usr/local/bin/wptrunner
 # TODO(jeffcarp) this should be an argument
 WPTD_PATH="$(dirname $(readlink -f $0))/.."
 WPTD_PROD_HOST="https://wptdashboard.appspot.com"
-WPT_DIR="/tmp/wpt"
-WORKING_DIR=/tmp
+WPT_DIR="/home/jeffcarp/build/wpt"
+WORKING_DIR=/home/jeffcarp/build
 
 run_some_wpt () {
     RUN_PATH="battery-status"
@@ -65,8 +65,8 @@ main () {
      && git checkout master \
      && git pull \
      && git checkout $CURRENT_WPT_SHA \
-     && ./manifest --work)
-    # && git apply $WPTD_PATH/util/keep-wpt-running.patch \
+     && ./manifest --work \
+     && git apply $WPTD_PATH/util/keep-wpt-running.patch)
     if [ $? -ne 0 ]; then
         echo "Failed to check out current WPT and generate MANIFEST.json"
         exit 1
@@ -89,8 +89,8 @@ main () {
     echo "[WPTD] Running WPT"
 
     # Using || to prevent script from stopping due to set -e
-    run_some_wpt || echo "[WPTD] Run finished"
-    # run_all_wpt || echo "[WPTD] Run finished"
+    # run_some_wpt || echo "[WPTD] Run finished"
+    run_all_wpt || echo "[WPTD] Run finished"
 
     NUM_TEST_STATUSES=$(cat $LOGFILE | grep "test_status" | wc -l)
     echo "[WPTD] Number of sub-test results: $NUM_TEST_STATUSES"
@@ -123,7 +123,7 @@ main () {
             \"revision\": \"$SHORT_SHA\",
             \"results_url\": \"$HTTP_RESULTS_URL\"
         }"
-
+    echo "\n[WPTD] TestRun created."
 }
 
 main "$@"
