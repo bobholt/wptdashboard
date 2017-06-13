@@ -1,11 +1,11 @@
 set -ex
 
-BROWSER_NAME="chrome"
 OS_NAME="debian"
 OS_VERSION="8"
 
 # TODO(jeffcarp) install chrome if needed
 CHROME_BINARY=/usr/bin/google-chrome-unstable
+FIREFOX_BINARY=$HOME/firefox/firefox
 
 # TODO(jeffcarp) install chromedriver if needed
 CHROMEDRIVER_BINARY=/usr/local/bin/chromedriver
@@ -18,8 +18,8 @@ WPTRUNNER_PATH=/usr/local/bin/wptrunner
 # TODO(jeffcarp) this should be an argument
 WPTD_PATH="$(dirname $(readlink -f $0))/.."
 WPTD_PROD_HOST="https://wptdashboard.appspot.com"
-WPT_DIR="/home/jeffcarp/build/wpt"
-WORKING_DIR=/home/jeffcarp/build
+WORKING_DIR="$HOME/build"
+WPT_DIR="$WORKING_DIR/wpt"
 
 run_some_wpt () {
     RUN_PATH="battery-status"
@@ -45,18 +45,50 @@ run_all_wpt () {
         --log-mach=-
 }
 
+run_some_wpt_firefox () {
+    RUN_PATH="vibration"
+    $WPTRUNNER_PATH \
+        --product=firefox \
+        --binary=$FIREFOX_BINARY \
+        --certutil-binary=/usr/bin/certutil \
+        --prefs-root=$HOME/profiles/ \
+        --meta $WPT_DIR \
+        --tests $WPT_DIR \
+        --log-raw=$LOGFILE \
+        --log-mach=- \
+        $RUN_PATH
+}
+
+run_all_wpt_firefox () {
+    $WPTRUNNER_PATH \
+        --product=firefox \
+        --binary=$FIREFOX_BINARY \
+        --certutil-binary=/usr/bin/certutil \
+        --prefs-root=$HOME/profiles/ \
+        --meta $WPT_DIR \
+        --tests $WPT_DIR \
+        --log-raw=$LOGFILE \
+        --log-mach=-
+}
+
 get_chrome_version () {
     $CHROME_BINARY --version | grep -ioE " [0-9]{1,3}.[0-9]{1,3}" | grep -ioE "\S+"
 }
+get_firefox_version () {
+    $FIREFOX_BINARY --version | grep -ioE " [0-9]{1,3}.[0-9]{1,3}" | grep -ioE "\S+"
+}
 
 main () {
+    # BROWSER_NAME="chrome"
+    BROWSER_NAME="firefox"
+    # BROWSER_VERSION=$(get_chrome_version)
+    BROWSER_VERSION=$(get_firefox_version)
+
     date
     # echo "[WPTD] Starting xvfb"
     # Xvfb :99.0 -screen 0 1024x768x16 &
     echo "[WPTD] ASSUMING XVFB ON DISPLAY 99.0"
     export DISPLAY=:99.0
-
-    BROWSER_VERSION=$(get_chrome_version)
 
     echo "Platform: $BROWSER_NAME $BROWSER_VERSION $OS_NAME $OS_VERSION"
 
@@ -90,7 +122,9 @@ main () {
 
     # Using || to prevent script from stopping due to set -e
     # run_some_wpt || echo "[WPTD] Run finished"
-    run_all_wpt || echo "[WPTD] Run finished"
+    run_some_wpt_firefox || echo "[WPTD] Run finished"
+    # run_all_wpt_firefox || echo "[WPTD] Run finished"
+    # run_all_wpt || echo "[WPTD] Run finished"
 
     NUM_TEST_STATUSES=$(cat $LOGFILE | grep "test_status" | wc -l)
     echo "[WPTD] Number of sub-test results: $NUM_TEST_STATUSES"
@@ -110,7 +144,6 @@ main () {
     HTTP_RESULTS_URL="https://storage.googleapis.com/wptdashboard.appspot.com/results/$SHORT_SHA/$PLATFORM_ID.json.gz"
     echo "[WPTD] Results available: $HTTP_RESULTS_URL"
 
-
     echo "[WPTD] Creating TestRun..."
     curl \
         -X POST  \
@@ -123,7 +156,7 @@ main () {
             \"revision\": \"$SHORT_SHA\",
             \"results_url\": \"$HTTP_RESULTS_URL\"
         }"
-    echo "\n[WPTD] TestRun created."
+
 }
 
 main "$@"
