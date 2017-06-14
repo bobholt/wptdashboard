@@ -68,6 +68,10 @@ main () {
     BROWSER_NAME=$1
     RUN_PATH=$2
 
+    if [ "$RUN_PATH" == "all" ]; then
+        RUN_PATH=''
+    fi
+
     date
     # echo "[WPTD] Starting xvfb"
     # Xvfb :99.0 -screen 0 1024x768x16 &
