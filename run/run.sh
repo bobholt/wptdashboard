@@ -21,8 +21,7 @@ WPTD_PROD_HOST="https://wptdashboard.appspot.com"
 WORKING_DIR="$HOME/build"
 WPT_DIR="$WORKING_DIR/wpt"
 
-run_some_wpt () {
-    RUN_PATH="battery-status"
+run_wpt_chrome () {
     $WPTRUNNER_PATH \
         --product=chrome \
         --binary=$CHROME_BINARY \
@@ -30,23 +29,10 @@ run_some_wpt () {
         --meta $WPT_DIR \
         --tests $WPT_DIR \
         --log-raw=$LOGFILE \
-        --log-mach=- \
-        $RUN_PATH
+        --log-mach=- $RUN_PATH
 }
 
-run_all_wpt () {
-    $WPTRUNNER_PATH \
-        --product=chrome \
-        --binary=$CHROME_BINARY \
-        --webdriver-binary=$CHROMEDRIVER_BINARY \
-        --meta $WPT_DIR \
-        --tests $WPT_DIR \
-        --log-raw=$LOGFILE \
-        --log-mach=-
-}
-
-run_some_wpt_firefox () {
-    RUN_PATH="vibration"
+run_wpt_firefox () {
     $WPTRUNNER_PATH \
         --product=firefox \
         --binary=$FIREFOX_BINARY \
@@ -55,20 +41,7 @@ run_some_wpt_firefox () {
         --meta $WPT_DIR \
         --tests $WPT_DIR \
         --log-raw=$LOGFILE \
-        --log-mach=- \
-        $RUN_PATH
-}
-
-run_all_wpt_firefox () {
-    $WPTRUNNER_PATH \
-        --product=firefox \
-        --binary=$FIREFOX_BINARY \
-        --certutil-binary=/usr/bin/certutil \
-        --prefs-root=$HOME/profiles/ \
-        --meta $WPT_DIR \
-        --tests $WPT_DIR \
-        --log-raw=$LOGFILE \
-        --log-mach=-
+        --log-mach=- $RUN_PATH
 }
 
 get_chrome_version () {
@@ -79,10 +52,21 @@ get_firefox_version () {
 }
 
 main () {
-    # BROWSER_NAME="chrome"
-    BROWSER_NAME="firefox"
-    # BROWSER_VERSION=$(get_chrome_version)
-    BROWSER_VERSION=$(get_firefox_version)
+    case $1 in
+    chrome*)
+        BROWSER_VERSION=$(get_chrome_version)
+      ;;
+    firefox*)
+        BROWSER_VERSION=$(get_firefox_version)
+      ;;
+    *)
+        echo "Invalid browser as first arg (use chrome or firefox)"
+        exit 1
+      ;;
+    esac
+
+    BROWSER_NAME=$1
+    RUN_PATH=$2
 
     date
     # echo "[WPTD] Starting xvfb"
@@ -120,11 +104,17 @@ main () {
 
     echo "[WPTD] Running WPT"
 
-    # Using || to prevent script from stopping due to set -e
-    # run_some_wpt || echo "[WPTD] Run finished"
-    run_some_wpt_firefox || echo "[WPTD] Run finished"
     # run_all_wpt_firefox || echo "[WPTD] Run finished"
     # run_all_wpt || echo "[WPTD] Run finished"
+    # Runners use || to prevent script from stopping due to `set -e` at top
+    case $BROWSER_NAME  in
+    chrome*)
+        run_wpt_chrome || echo "[WPTD] Run finished"
+      ;;
+    firefox*)
+        run_wpt_firefox || echo "[WPTD] Run finished"
+      ;;
+    esac
 
     NUM_TEST_STATUSES=$(cat $LOGFILE | grep "test_status" | wc -l)
     echo "[WPTD] Number of sub-test results: $NUM_TEST_STATUSES"
@@ -143,6 +133,11 @@ main () {
 
     HTTP_RESULTS_URL="https://storage.googleapis.com/wptdashboard.appspot.com/results/$SHORT_SHA/$PLATFORM_ID.json.gz"
     echo "[WPTD] Results available: $HTTP_RESULTS_URL"
+
+    if [ "$3" != "upload" ]; then
+        echo "Not uploading. Pass 'upload' as the 3rd arg to upload."
+        exit 0
+    fi
 
     echo "[WPTD] Creating TestRun..."
     curl \
