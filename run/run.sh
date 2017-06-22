@@ -17,7 +17,7 @@ WPTRUNNER_PATH=/usr/local/bin/wptrunner
 
 # TODO(jeffcarp) this should be an argument
 WPTD_PATH="$(dirname $(readlink -f $0))/.."
-WPTD_PROD_HOST="https://wptdashboard.appspot.com"
+WPTD_PROD_HOST="https://running-dot-wptdashboard.appspot.com"
 WORKING_DIR="$HOME/build"
 WPT_DIR="$WORKING_DIR/wpt"
 
